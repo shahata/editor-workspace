@@ -13,15 +13,42 @@ if (typeof window !== 'undefined' && !window.getObjectLocations) {
   };
 }
 
+// Assign the default generateFromPrompt globally, outside the component
+if (typeof window !== 'undefined' && !window.generateFromPrompt) {
+  window.generateFromPrompt = function () {
+    // Whiteboard size
+    const boardWidth = 375;
+    const boardHeight = 667;
+    // Generate 5 random rectangles
+    const newLocations = Array.from({ length: 5 }, () => {
+      const width = Math.floor(40 + Math.random() * 120);
+      const height = Math.floor(40 + Math.random() * 120);
+      const left = Math.floor(Math.random() * (boardWidth - width));
+      const top = Math.floor(Math.random() * (boardHeight - height));
+      return { top, left, width, height };
+    });
+    window.getObjectLocations = () => newLocations;
+    return Promise.resolve();
+  };
+}
+
 export default function App() {
   const [text, setText] = useState('');
   const [hoveredIdx, setHoveredIdx] = useState(null);
-  const objectLocations =
+  const [objectLocations, setObjectLocations] = useState(
     typeof window !== 'undefined' && window.getObjectLocations
       ? window.getObjectLocations()
-      : [];
+      : [],
+  );
 
-  // Optionally, you could add a button or effect to refresh locations if window.getObjectLocations changes
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (typeof window !== 'undefined' && window.generateFromPrompt) {
+      await window.generateFromPrompt();
+      setObjectLocations(window.getObjectLocations());
+    }
+    setText('');
+  };
 
   return (
     <div
@@ -107,11 +134,7 @@ export default function App() {
           transform: 'translateX(-50%)',
           justifyContent: 'center',
         }}
-        onSubmit={(e) => {
-          e.preventDefault();
-          alert(text);
-          setText('');
-        }}
+        onSubmit={handleSubmit}
       >
         <textarea
           value={text}

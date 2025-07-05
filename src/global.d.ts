@@ -7,6 +7,7 @@ declare global {
   }
   interface Window {
     getObjectLocations: () => ObjectLocation[];
+    generateFromPrompt: (prompt: string) => Promise<void>;
   }
 }
 export {};
