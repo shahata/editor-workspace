@@ -48,7 +48,6 @@ export default function App() {
 
 - `react` >= 18
 - `react-dom` >= 18
-- `react-moveable` >= 0.56
 
 ---
 
