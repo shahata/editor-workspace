@@ -1,8 +1,10 @@
-import React, { StrictMode } from 'react';
+import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { Editor, ObjectLocation, ObjectDataPair } from './App';
+import { Editor } from './App';
+import type { ObjectLocation, ObjectDataPair } from './App';
+import React from 'react';
 
-let _objectData: Record<string, ObjectDataPair[]> = {};
+const _objectData: Record<string, ObjectDataPair[]> = {};
 let _currentLocations: ObjectLocation[] = [];
 
 export const editorImpl = {
@@ -10,8 +12,9 @@ export const editorImpl = {
     return _currentLocations;
   },
   generateFromPrompt(
-    _prompt: string,
-  ): Promise<{ component: any; width: number; height: number }> {
+    prompt: string,
+  ): Promise<{ component: React.FC; width: number; height: number }> {
+    console.log('generateFromPrompt', prompt);
     const width = 300 + Math.floor(Math.random() * 200); // 300-500
     const height = 500 + Math.floor(Math.random() * 200); // 500-700
     const locations: ObjectLocation[] = Array.from({ length: 5 }, (_, i) => {
@@ -46,7 +49,7 @@ export const editorImpl = {
           height: '100%',
         }}
       >
-        {_currentLocations.map((obj: ObjectLocation, idx: number) => {
+        {_currentLocations.map((obj: ObjectLocation) => {
           const data = _objectData[obj.id];
           const bg = data
             ? data.find((kv) => kv.key === 'background')?.value ||
@@ -94,9 +97,6 @@ export const editorImpl = {
       _currentLocations = _currentLocations.map(
         (obj: ObjectLocation, i: number) => (i === index ? newLocation : obj),
       );
-      if (typeof (window as any)._onLocationsChanged === 'function') {
-        (window as any)._onLocationsChanged(_currentLocations);
-      }
     }
   },
   getObjectData(id: string): ObjectDataPair[] {
@@ -119,11 +119,8 @@ export const editorImpl = {
   },
 };
 
-const rootEl = document.getElementById('root');
-if (rootEl) {
-  createRoot(rootEl).render(
-    <StrictMode>
-      <Editor editorImpl={editorImpl} />
-    </StrictMode>,
-  );
-}
+createRoot(document.getElementById('root')!).render(
+  <StrictMode>
+    <Editor editorImpl={editorImpl} />
+  </StrictMode>,
+);

@@ -21,7 +21,7 @@ export type EditorImplementation = {
   getObjectLocations: () => ObjectLocation[];
   generateFromPrompt: (
     prompt: string,
-  ) => Promise<{ component: any; width: number; height: number }>;
+  ) => Promise<{ component: React.FC; width: number; height: number }>;
   setObjectLocation: (index: number, newLocation: ObjectLocation) => void;
   getObjectData: (id: string) => ObjectDataPair[];
   setObjectData: (id: string, data: ObjectDataPair[]) => void;
