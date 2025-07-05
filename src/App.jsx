@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import './globals.jsx';
 
 // Assign the default getObjectLocations globally, outside the component
@@ -73,9 +73,35 @@ export default function App() {
       ? window.getObjectLocations()
       : [],
   );
+  const [selectedIdx, setSelectedIdx] = useState(null);
+  const dragInfo = useRef({
+    idx: null,
+    offsetX: 0,
+    offsetY: 0,
+    startX: 0,
+    startY: 0,
+    origTop: 0,
+    origLeft: 0,
+  });
+  const [generatedComponentKey, setGeneratedComponentKey] = useState(0);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window._onLocationsChanged = (newLocations) => {
+        setOverlayLocations(Array.isArray(newLocations) ? newLocations : []);
+        setGeneratedComponentKey((k) => k + 1); // force re-render of generated component
+      };
+    }
+    return () => {
+      if (typeof window !== 'undefined') {
+        window._onLocationsChanged = undefined;
+      }
+    };
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setSelectedIdx(null);
     if (typeof window !== 'undefined' && window.generateFromPrompt) {
       setPending(true);
       const result = await window.generateFromPrompt(text);
@@ -107,6 +133,73 @@ export default function App() {
       setOverlayLocations(window.getObjectLocations());
     }
   };
+
+  // Drag handlers for overlays
+  const handleMouseDown = (e, idx, obj) => {
+    if (pending) return;
+    setSelectedIdx(idx);
+    dragInfo.current = {
+      idx,
+      offsetX: e.clientX,
+      offsetY: e.clientY,
+      startX: e.clientX,
+      startY: e.clientY,
+      origTop: obj.top,
+      origLeft: obj.left,
+    };
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+  };
+
+  const handleMouseMove = (e) => {
+    const { idx, startX, startY, origTop, origLeft } = dragInfo.current;
+    if (idx === null) return;
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+    setOverlayLocations((prev) =>
+      prev.map((obj, i) => {
+        if (i === idx) {
+          const newObj = { ...obj, top: origTop + dy, left: origLeft + dx };
+          if (window.setObjectLocation) {
+            window.setObjectLocation(idx, newObj);
+          }
+          return newObj;
+        }
+        return obj;
+      }),
+    );
+  };
+
+  const handleMouseUp = () => {
+    const { idx } = dragInfo.current;
+    if (idx === null) return;
+    dragInfo.current = {
+      idx: null,
+      offsetX: 0,
+      offsetY: 0,
+      startX: 0,
+      startY: 0,
+      origTop: 0,
+      origLeft: 0,
+    };
+    window.removeEventListener('mousemove', handleMouseMove);
+    window.removeEventListener('mouseup', handleMouseUp);
+  };
+
+  // Unselect when clicking anywhere on the document
+  const handleDocumentClick = (e) => {
+    // Only unfocus if the click is not on an overlay
+    if (!e.target.closest('[data-overlay]')) {
+      setSelectedIdx(null);
+    }
+  };
+
+  useEffect(() => {
+    document.body.addEventListener('mousedown', handleDocumentClick);
+    return () => {
+      document.body.removeEventListener('mousedown', handleDocumentClick);
+    };
+  }, []);
 
   return (
     <div
@@ -186,7 +279,11 @@ export default function App() {
         }}
       >
         {/* Render the generated component (from the promise) */}
-        {generatedComponent ? React.createElement(generatedComponent) : null}
+        {generatedComponent
+          ? React.createElement(generatedComponent, {
+              key: generatedComponentKey,
+            })
+          : null}
         {/* Render overlays for hover/fill, always on top */}
         <div
           style={{
@@ -211,19 +308,25 @@ export default function App() {
                   ? 'rgba(227, 227, 227, 0.6)'
                   : 'transparent',
                 border:
-                  hoveredIdx === idx
+                  hoveredIdx === idx || selectedIdx === idx
                     ? '2px solid #4fc3f7'
                     : '2px solid transparent',
                 borderRadius: 8,
                 boxSizing: 'border-box',
                 transition: 'border 0.15s, background 0.15s',
                 pointerEvents: 'auto',
-                cursor: 'pointer',
+                cursor: pending
+                  ? 'not-allowed'
+                  : selectedIdx === idx
+                  ? 'move'
+                  : 'pointer',
                 zIndex: obj.zIndex,
                 transform: `rotate(${obj.rotation}deg)`,
               }}
               onMouseEnter={() => setHoveredIdx(idx)}
               onMouseLeave={() => setHoveredIdx(null)}
+              onMouseDown={(e) => handleMouseDown(e, idx, obj)}
+              onClick={() => setSelectedIdx(idx)}
               title={`Object ${idx + 1}`}
             />
           ))}

@@ -2,7 +2,7 @@
 
 if (typeof window !== 'undefined' && !window.getObjectLocations) {
   window.getObjectLocations = function () {
-    return [];
+    return window._currentLocations || [];
   };
 }
 
@@ -21,6 +21,7 @@ if (typeof window !== 'undefined' && !window.generateFromPrompt) {
       const rotation = Math.floor(Math.random() * 360); // 0-359 degrees
       return { top: t, left: l, width: w, height: h, zIndex, rotation };
     });
+    window._currentLocations = locations;
     // The component to render (placeholder look: diagonal lines pattern)
     const component = () => (
       <div
@@ -32,7 +33,7 @@ if (typeof window !== 'undefined' && !window.generateFromPrompt) {
           height: '100%',
         }}
       >
-        {locations.map((obj, idx) => (
+        {(window._currentLocations || []).map((obj, idx) => (
           <div
             key={idx}
             style={{
@@ -54,5 +55,19 @@ if (typeof window !== 'undefined' && !window.generateFromPrompt) {
     return new Promise((resolve) =>
       setTimeout(() => resolve({ component, width, height, locations }), 1000),
     );
+  };
+}
+
+if (typeof window !== 'undefined' && !window.setObjectLocation) {
+  window.setObjectLocation = function (index, newLocation) {
+    if (Array.isArray(window._currentLocations)) {
+      window._currentLocations = window._currentLocations.map((obj, i) =>
+        i === index ? newLocation : obj,
+      );
+      if (typeof window._onLocationsChanged === 'function') {
+        window._onLocationsChanged(window._currentLocations);
+      }
+    }
+    console.log('setObjectLocation called:', { index, newLocation });
   };
 }
