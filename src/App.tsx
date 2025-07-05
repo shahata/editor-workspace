@@ -1,47 +1,82 @@
 import React, { useState, useEffect, useRef } from 'react';
-import './globals.tsx';
 import Moveable from 'react-moveable';
 import { flushSync } from 'react-dom';
-import { getEditorImplementation } from './editor';
 
-export default function App() {
-  const [text, setText] = useState('');
-  const [hoveredIdx, setHoveredIdx] = useState(null);
-  const [showAreas, setShowAreas] = useState(false);
-  const [pending, setPending] = useState(false);
-  const [boardWidth, setBoardWidth] = useState(375);
-  const [boardHeight, setBoardHeight] = useState(667);
-  const [generatedComponent, setGeneratedComponent] = useState(null);
-  const [overlayLocations, setOverlayLocations] = useState(() =>
-    getEditorImplementation().getObjectLocations(),
+export type ObjectLocation = {
+  id: string;
+  top: number;
+  left: number;
+  width: number;
+  height: number;
+  zIndex: number;
+  rotation: number;
+};
+
+export type ObjectDataPair = {
+  key: string;
+  value: string;
+};
+
+export type EditorImplementation = {
+  getObjectLocations: () => ObjectLocation[];
+  generateFromPrompt: (
+    prompt: string,
+  ) => Promise<{ component: any; width: number; height: number }>;
+  setObjectLocation: (index: number, newLocation: ObjectLocation) => void;
+  getObjectData: (id: string) => ObjectDataPair[];
+  setObjectData: (id: string, data: ObjectDataPair[]) => void;
+};
+
+export function Editor({ editorImpl }: { editorImpl: EditorImplementation }) {
+  const [text, setText] = useState<string>('');
+  const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
+  const [showAreas, setShowAreas] = useState<boolean>(false);
+  const [pending, setPending] = useState<boolean>(false);
+  const [boardWidth, setBoardWidth] = useState<number>(375);
+  const [boardHeight, setBoardHeight] = useState<number>(667);
+  const [generatedComponent, setGeneratedComponent] = useState<React.FC | null>(
+    null,
   );
-  const [selectedIdx, setSelectedIdx] = useState(null);
-  const overlayRefs = useRef([]);
-  const whiteboardRef = useRef(null);
+  const [overlayLocations, setOverlayLocations] = useState<ObjectLocation[]>(
+    () => editorImpl.getObjectLocations(),
+  );
+  const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
+  const overlayRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const whiteboardRef = useRef<HTMLDivElement | null>(null);
   const minBoardWidth = 200;
   const minBoardHeight = 200;
-  const isResizing = useRef(null); // { type: 'width' | 'height', startX, startY, startWidth, startHeight }
-  const [sidepanelData, setSidepanelData] = useState(null);
-  const [sidepanelId, setSidepanelId] = useState(null);
-  const newKeyInputRef = useRef(null);
-  const [sidepanelPos, setSidepanelPos] = useState({ top: 0, bottom: 0 });
-  const [moveableRerenderKey, setMoveableRerenderKey] = useState(0);
+  const isResizing = useRef<
+    | null
+    | { type: 'width'; startX: number; startWidth: number }
+    | { type: 'height'; startY: number; startHeight: number }
+  >(null);
+  const [sidepanelData, setSidepanelData] = useState<ObjectDataPair[] | null>(
+    null,
+  );
+  const [sidepanelId, setSidepanelId] = useState<string | null>(null);
+  const newKeyInputRef = useRef<HTMLInputElement | null>(null);
+  const [sidepanelPos, setSidepanelPos] = useState<{
+    top: number;
+    bottom: number;
+  }>({ top: 0, bottom: 0 });
+  const [moveableRerenderKey, setMoveableRerenderKey] = useState<number>(0);
 
   useEffect(() => {
     // Ensure refs array matches overlays
     overlayRefs.current = overlayLocations.map(
-      (_, i) => overlayRefs.current[i] || React.createRef(),
+      (_: ObjectLocation, i: number) => overlayRefs.current[i] || null,
     );
   }, [overlayLocations.length]);
 
   useEffect(() => {
-    function handleDocumentClick(e) {
+    function handleDocumentClick(e: MouseEvent) {
       // Unfocus if click is not on an overlay, Moveable handle, or the sidepanel
-      const isOverlay = e.target.closest('[data-overlay]');
-      const isMoveable = e.target.closest(
+      const target = e.target as HTMLElement;
+      const isOverlay = target.closest('[data-overlay]');
+      const isMoveable = target.closest(
         '.moveable-control, .moveable-line, .moveable-area',
       );
-      const isSidepanel = e.target.closest('[data-sidepanel]');
+      const isSidepanel = target.closest('[data-sidepanel]');
       if (!isOverlay && !isMoveable && !isSidepanel) {
         setSelectedIdx(null);
       }
@@ -53,8 +88,11 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    setOverlayLocations((prev) =>
-      prev.map((obj, i) => ({ id: obj.id ?? (obj.id = `obj-${i}`), ...obj })),
+    setOverlayLocations((prev: ObjectLocation[]) =>
+      prev.map((obj: ObjectLocation, i: number) => {
+        if (!obj.id) obj.id = `obj-${i}`;
+        return obj;
+      }),
     );
   }, []);
 
@@ -62,11 +100,11 @@ export default function App() {
     if (
       selectedIdx !== null &&
       overlayLocations[selectedIdx] &&
-      getEditorImplementation().getObjectData
+      editorImpl.getObjectData
     ) {
       const id = overlayLocations[selectedIdx].id;
       setSidepanelId(id);
-      const data = getEditorImplementation().getObjectData(id);
+      const data = editorImpl.getObjectData(id);
       setSidepanelData(Array.isArray(data) ? data : []);
     } else {
       setSidepanelId(null);
@@ -74,23 +112,23 @@ export default function App() {
     }
   }, [selectedIdx, overlayLocations]);
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setSelectedIdx(null);
     setPending(true);
-    const result = await getEditorImplementation().generateFromPrompt(text);
+    const result = await editorImpl.generateFromPrompt(text);
     if (result && result.component && result.width && result.height) {
       setGeneratedComponent(() => result.component);
       setBoardWidth(result.width);
       setBoardHeight(result.height);
     }
-    setOverlayLocations(getEditorImplementation().getObjectLocations());
+    setOverlayLocations(editorImpl.getObjectLocations());
     setText('');
     setPending(false);
   };
 
   const handleRefresh = () => {
-    setOverlayLocations(getEditorImplementation().getObjectLocations());
+    setOverlayLocations(editorImpl.getObjectLocations());
   };
 
   // Single Moveable instance for selected overlay
@@ -99,7 +137,10 @@ export default function App() {
   const selectedObj =
     selectedIdx !== null ? overlayLocations[selectedIdx] : null;
 
-  function handleBoardResizeMouseDown(e, type) {
+  function handleBoardResizeMouseDown(
+    e: React.MouseEvent,
+    type: 'width' | 'height',
+  ) {
     e.preventDefault();
     if (type === 'width') {
       isResizing.current = {
@@ -118,7 +159,7 @@ export default function App() {
     window.addEventListener('mouseup', handleBoardResizeMouseUp);
   }
 
-  function handleBoardResizeMouseMove(e) {
+  function handleBoardResizeMouseMove(e: MouseEvent) {
     if (!isResizing.current) return;
     if (isResizing.current.type === 'width') {
       const dx = e.clientX - isResizing.current.startX;
@@ -139,13 +180,14 @@ export default function App() {
     window.removeEventListener('mouseup', handleBoardResizeMouseUp);
   }
 
-  function handleSidepanelChange(idx, newValue) {
-    setSidepanelData((prev) => {
-      const updated = prev.map((kv, i) =>
+  function handleSidepanelChange(idx: number, newValue: string) {
+    setSidepanelData((prev: ObjectDataPair[] | null) => {
+      if (!prev) return prev;
+      const updated = prev.map((kv: ObjectDataPair, i: number) =>
         i === idx ? { ...kv, value: newValue } : kv,
       );
       if (sidepanelId) {
-        getEditorImplementation().setObjectData(sidepanelId, updated);
+        editorImpl.setObjectData(sidepanelId, updated);
       }
       return updated;
     });
@@ -281,7 +323,9 @@ export default function App() {
             return (
               <React.Fragment key={idx}>
                 <div
-                  ref={(el) => (overlayRefs.current[idx] = el)}
+                  ref={(el) => {
+                    overlayRefs.current[idx] = el;
+                  }}
                   data-overlay
                   style={{
                     position: 'absolute',
@@ -405,7 +449,7 @@ export default function App() {
                 prev.map((o, i) => (i === selectedIdx ? newObj : o)),
               );
             });
-            getEditorImplementation().setObjectLocation(selectedIdx, newObj);
+            editorImpl.setObjectLocation(selectedIdx as number, newObj);
           }}
           onResize={({ width, height, drag }) => {
             const { left, top } = drag;
@@ -415,7 +459,7 @@ export default function App() {
                 prev.map((o, i) => (i === selectedIdx ? newObj : o)),
               );
             });
-            getEditorImplementation().setObjectLocation(selectedIdx, newObj);
+            editorImpl.setObjectLocation(selectedIdx as number, newObj);
           }}
           onRotate={({ beforeRotate }) => {
             const newObj = { ...selectedObj, rotation: beforeRotate };
@@ -424,7 +468,7 @@ export default function App() {
                 prev.map((o, i) => (i === selectedIdx ? newObj : o)),
               );
             });
-            getEditorImplementation().setObjectLocation(selectedIdx, newObj);
+            editorImpl.setObjectLocation(selectedIdx as number, newObj);
           }}
           rotation={selectedObj.rotation || 0}
           left={selectedObj.left}
@@ -507,48 +551,59 @@ export default function App() {
               }}
             >
               <div style={{ fontWeight: 600, marginBottom: 8 }}>Location</div>
-              {['top', 'left', 'width', 'height', 'rotation', 'zIndex'].map(
-                (field) => (
-                  <div
-                    key={field}
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      gap: 8,
-                      marginBottom: 8,
+              {(
+                [
+                  'top',
+                  'left',
+                  'width',
+                  'height',
+                  'rotation',
+                  'zIndex',
+                ] as const
+              ).map((field) => (
+                <div
+                  key={field}
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 8,
+                    marginBottom: 8,
+                  }}
+                >
+                  <span style={{ minWidth: 80 }}>
+                    {field.charAt(0).toUpperCase() + field.slice(1)}
+                  </span>
+                  <input
+                    type="number"
+                    value={getLocationFieldValue(
+                      overlayLocations[selectedIdx],
+                      field,
+                    )}
+                    onChange={(e) => {
+                      const value = Number(e.target.value);
+                      const obj = overlayLocations[selectedIdx];
+                      if (!obj) return;
+                      const newObj = { ...obj, [field]: value };
+                      setOverlayLocations((prev) =>
+                        prev.map((o, i) => (i === selectedIdx ? newObj : o)),
+                      );
+                      editorImpl.setObjectLocation(
+                        selectedIdx as number,
+                        newObj,
+                      );
+                      setMoveableRerenderKey((k) => k + 1); // force Moveable remount
                     }}
-                  >
-                    <span style={{ minWidth: 80 }}>
-                      {field.charAt(0).toUpperCase() + field.slice(1)}
-                    </span>
-                    <input
-                      type="number"
-                      value={overlayLocations[selectedIdx][field] ?? 0}
-                      onChange={(e) => {
-                        const value = Number(e.target.value);
-                        const obj = overlayLocations[selectedIdx];
-                        const newObj = { ...obj, [field]: value };
-                        setOverlayLocations((prev) =>
-                          prev.map((o, i) => (i === selectedIdx ? newObj : o)),
-                        );
-                        getEditorImplementation().setObjectLocation(
-                          selectedIdx,
-                          newObj,
-                        );
-                        setMoveableRerenderKey((k) => k + 1); // force Moveable remount
-                      }}
-                      style={{
-                        flex: 1,
-                        padding: 6,
-                        borderRadius: 4,
-                        border: '1px solid #bbb',
-                        fontSize: 16,
-                      }}
-                    />
-                  </div>
-                ),
-              )}
+                    style={{
+                      flex: 1,
+                      padding: 6,
+                      borderRadius: 4,
+                      border: '1px solid #bbb',
+                      fontSize: 16,
+                    }}
+                  />
+                </div>
+              ))}
             </div>
           </div>
         )}
@@ -610,4 +665,28 @@ export default function App() {
       </form>
     </div>
   );
+}
+
+// Helper for type-safe access to ObjectLocation fields
+function getLocationFieldValue(
+  obj: ObjectLocation | undefined,
+  field: 'top' | 'left' | 'width' | 'height' | 'rotation' | 'zIndex',
+): number {
+  if (!obj) return 0;
+  switch (field) {
+    case 'top':
+      return obj.top;
+    case 'left':
+      return obj.left;
+    case 'width':
+      return obj.width;
+    case 'height':
+      return obj.height;
+    case 'rotation':
+      return obj.rotation ?? 0;
+    case 'zIndex':
+      return obj.zIndex ?? 0;
+    default:
+      return 0;
+  }
 }

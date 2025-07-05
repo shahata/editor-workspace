@@ -1,14 +1,11 @@
-import React from 'react';
-import {
-  setEditorImplementation,
-  ObjectLocation,
-  ObjectDataPair,
-} from './editor';
+import React, { StrictMode } from 'react';
+import { createRoot } from 'react-dom/client';
+import { Editor, ObjectLocation, ObjectDataPair } from './App';
 
 let _objectData: Record<string, ObjectDataPair[]> = {};
 let _currentLocations: ObjectLocation[] = [];
 
-const impl = {
+export const editorImpl = {
   getObjectLocations(): ObjectLocation[] {
     return _currentLocations;
   },
@@ -122,6 +119,11 @@ const impl = {
   },
 };
 
-setEditorImplementation(impl);
-
-export {};
+const rootEl = document.getElementById('root');
+if (rootEl) {
+  createRoot(rootEl).render(
+    <StrictMode>
+      <Editor editorImpl={editorImpl} />
+    </StrictMode>,
+  );
+}
