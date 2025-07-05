@@ -100,6 +100,23 @@ export default function App() {
     );
   }, [overlayLocations.length]);
 
+  useEffect(() => {
+    function handleDocumentClick(e) {
+      // Unfocus if click is not on an overlay or Moveable handle
+      const isOverlay = e.target.closest('[data-overlay]');
+      const isMoveable = e.target.closest(
+        '.moveable-control, .moveable-line, .moveable-area',
+      );
+      if (!isOverlay && !isMoveable) {
+        setSelectedIdx(null);
+      }
+    }
+    document.body.addEventListener('mousedown', handleDocumentClick);
+    return () => {
+      document.body.removeEventListener('mousedown', handleDocumentClick);
+    };
+  }, []);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSelectedIdx(null);
@@ -257,7 +274,7 @@ export default function App() {
                     borderRadius: 8,
                     boxSizing: 'border-box',
                     transition: 'border 0.15s, background 0.15s',
-                    pointerEvents: selectedIdx === idx ? 'none' : 'auto',
+                    pointerEvents: 'auto',
                     cursor: pending
                       ? 'not-allowed'
                       : selectedIdx === idx
