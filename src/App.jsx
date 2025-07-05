@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import './globals.jsx';
 
 // Assign the default getObjectLocations globally, outside the component
 if (typeof window !== 'undefined' && !window.getObjectLocations) {
