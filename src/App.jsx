@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import './globals.tsx';
 import Moveable from 'react-moveable';
 import { flushSync } from 'react-dom';
+import { getEditorImplementation } from './editor';
 
 export default function App() {
   const [text, setText] = useState('');
@@ -11,10 +12,8 @@ export default function App() {
   const [boardWidth, setBoardWidth] = useState(375);
   const [boardHeight, setBoardHeight] = useState(667);
   const [generatedComponent, setGeneratedComponent] = useState(null);
-  const [overlayLocations, setOverlayLocations] = useState(
-    typeof window !== 'undefined' && window.getObjectLocations
-      ? window.getObjectLocations()
-      : [],
+  const [overlayLocations, setOverlayLocations] = useState(() =>
+    getEditorImplementation().getObjectLocations(),
   );
   const [selectedIdx, setSelectedIdx] = useState(null);
   const overlayRefs = useRef([]);
@@ -63,11 +62,11 @@ export default function App() {
     if (
       selectedIdx !== null &&
       overlayLocations[selectedIdx] &&
-      window.getObjectData
+      getEditorImplementation().getObjectData
     ) {
       const id = overlayLocations[selectedIdx].id;
       setSidepanelId(id);
-      const data = window.getObjectData(id);
+      const data = getEditorImplementation().getObjectData(id);
       setSidepanelData(Array.isArray(data) ? data : []);
     } else {
       setSidepanelId(null);
@@ -78,26 +77,20 @@ export default function App() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSelectedIdx(null);
-    if (typeof window !== 'undefined' && window.generateFromPrompt) {
-      setPending(true);
-      const result = await window.generateFromPrompt(text);
-      if (result && result.component && result.width && result.height) {
-        setGeneratedComponent(() => result.component);
-        setBoardWidth(result.width);
-        setBoardHeight(result.height);
-      }
-      setOverlayLocations(
-        window.getObjectLocations ? window.getObjectLocations() : [],
-      );
-      setPending(false);
+    setPending(true);
+    const result = await getEditorImplementation().generateFromPrompt(text);
+    if (result && result.component && result.width && result.height) {
+      setGeneratedComponent(() => result.component);
+      setBoardWidth(result.width);
+      setBoardHeight(result.height);
     }
+    setOverlayLocations(getEditorImplementation().getObjectLocations());
     setText('');
+    setPending(false);
   };
 
   const handleRefresh = () => {
-    if (typeof window !== 'undefined' && window.getObjectLocations) {
-      setOverlayLocations(window.getObjectLocations());
-    }
+    setOverlayLocations(getEditorImplementation().getObjectLocations());
   };
 
   // Single Moveable instance for selected overlay
@@ -151,8 +144,8 @@ export default function App() {
       const updated = prev.map((kv, i) =>
         i === idx ? { ...kv, value: newValue } : kv,
       );
-      if (sidepanelId && window.setObjectData) {
-        window.setObjectData(sidepanelId, updated);
+      if (sidepanelId) {
+        getEditorImplementation().setObjectData(sidepanelId, updated);
       }
       return updated;
     });
@@ -406,38 +399,32 @@ export default function App() {
             style: { zIndex: 99999 },
           }}
           onDrag={({ left, top }) => {
-            console.log('onDrag', left, top);
             const newObj = { ...selectedObj, left, top };
             flushSync(() => {
               setOverlayLocations((prev) =>
                 prev.map((o, i) => (i === selectedIdx ? newObj : o)),
               );
             });
-            if (window.setObjectLocation)
-              window.setObjectLocation(selectedIdx, newObj);
+            getEditorImplementation().setObjectLocation(selectedIdx, newObj);
           }}
           onResize={({ width, height, drag }) => {
             const { left, top } = drag;
-            console.log('onResize', left, top, width, height);
             const newObj = { ...selectedObj, width, height, left, top };
             flushSync(() => {
               setOverlayLocations((prev) =>
                 prev.map((o, i) => (i === selectedIdx ? newObj : o)),
               );
             });
-            if (window.setObjectLocation)
-              window.setObjectLocation(selectedIdx, newObj);
+            getEditorImplementation().setObjectLocation(selectedIdx, newObj);
           }}
           onRotate={({ beforeRotate }) => {
-            console.log('onRotate', beforeRotate);
             const newObj = { ...selectedObj, rotation: beforeRotate };
             flushSync(() => {
               setOverlayLocations((prev) =>
                 prev.map((o, i) => (i === selectedIdx ? newObj : o)),
               );
             });
-            if (window.setObjectLocation)
-              window.setObjectLocation(selectedIdx, newObj);
+            getEditorImplementation().setObjectLocation(selectedIdx, newObj);
           }}
           rotation={selectedObj.rotation || 0}
           left={selectedObj.left}
@@ -545,8 +532,10 @@ export default function App() {
                         setOverlayLocations((prev) =>
                           prev.map((o, i) => (i === selectedIdx ? newObj : o)),
                         );
-                        if (window.setObjectLocation)
-                          window.setObjectLocation(selectedIdx, newObj);
+                        getEditorImplementation().setObjectLocation(
+                          selectedIdx,
+                          newObj,
+                        );
                         setMoveableRerenderKey((k) => k + 1); // force Moveable remount
                       }}
                       style={{

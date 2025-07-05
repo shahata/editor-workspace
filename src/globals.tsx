@@ -1,17 +1,18 @@
 import React from 'react';
-import './global.d.ts';
+import {
+  setEditorImplementation,
+  ObjectLocation,
+  ObjectDataPair,
+} from './editor';
 
-let currentLocations;
 let _objectData: Record<string, ObjectDataPair[]> = {};
+let _currentLocations: ObjectLocation[] = [];
 
-if (typeof window !== 'undefined' && !window.getObjectLocations) {
-  window.getObjectLocations = function (): ObjectLocation[] {
-    return currentLocations || [];
-  };
-}
-
-if (typeof window !== 'undefined' && !window.generateFromPrompt) {
-  window.generateFromPrompt = function (
+const impl = {
+  getObjectLocations(): ObjectLocation[] {
+    return _currentLocations;
+  },
+  generateFromPrompt(
     _prompt: string,
   ): Promise<{ component: any; width: number; height: number }> {
     const width = 300 + Math.floor(Math.random() * 200); // 300-500
@@ -24,8 +25,7 @@ if (typeof window !== 'undefined' && !window.generateFromPrompt) {
       const zIndex = Math.floor(Math.random() * 10) + 1;
       const rotation = Math.floor(Math.random() * 360);
       const id = `obj-${Date.now()}-${i}-${Math.floor(Math.random() * 10000)}`;
-      if (typeof window !== 'undefined') {
-        if (!_objectData[id]) _objectData[id] = [];
+      if (!_objectData[id]) {
         _objectData[id] = [
           { key: 'name', value: `Object ${id}` },
           { key: 'type', value: 'rectangle' },
@@ -49,7 +49,7 @@ if (typeof window !== 'undefined' && !window.generateFromPrompt) {
           height: '100%',
         }}
       >
-        {(currentLocations || []).map((obj, idx) => {
+        {_currentLocations.map((obj: ObjectLocation, idx: number) => {
           const data = _objectData[obj.id];
           const bg = data
             ? data.find((kv) => kv.key === 'background')?.value ||
@@ -87,29 +87,22 @@ if (typeof window !== 'undefined' && !window.generateFromPrompt) {
     );
     return new Promise((resolve) => {
       setTimeout(() => {
-        currentLocations = locations;
+        _currentLocations = locations;
         resolve({ component, width, height });
       }, 1000);
     });
-  };
-}
-
-if (typeof window !== 'undefined' && !window.setObjectLocation) {
-  window.setObjectLocation = function (
-    index: number,
-    newLocation: ObjectLocation,
-  ): void {
-    if (Array.isArray(currentLocations)) {
-      currentLocations = currentLocations.map((obj, i) =>
-        i === index ? newLocation : obj,
+  },
+  setObjectLocation(index: number, newLocation: ObjectLocation): void {
+    if (Array.isArray(_currentLocations)) {
+      _currentLocations = _currentLocations.map(
+        (obj: ObjectLocation, i: number) => (i === index ? newLocation : obj),
       );
+      if (typeof (window as any)._onLocationsChanged === 'function') {
+        (window as any)._onLocationsChanged(_currentLocations);
+      }
     }
-    console.log('setObjectLocation called:', { index, newLocation });
-  };
-}
-
-if (typeof window !== 'undefined' && !window.getObjectData) {
-  window.getObjectData = function (id: string): ObjectDataPair[] {
+  },
+  getObjectData(id: string): ObjectDataPair[] {
     if (!_objectData[id]) {
       _objectData[id] = [
         { key: 'name', value: `Object ${id}` },
@@ -123,14 +116,12 @@ if (typeof window !== 'undefined' && !window.getObjectData) {
       ];
     }
     return _objectData[id];
-  };
-}
-
-if (typeof window !== 'undefined' && !window.setObjectData) {
-  window.setObjectData = function (id: string, arr: ObjectDataPair[]): void {
+  },
+  setObjectData(id: string, arr: ObjectDataPair[]): void {
     _objectData[id] = arr;
-    console.log('setObjectData', id, arr);
-  };
-}
+  },
+};
+
+setEditorImplementation(impl);
 
 export {};
