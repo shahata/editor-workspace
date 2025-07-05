@@ -27,6 +27,7 @@ export default function App() {
   const [sidepanelId, setSidepanelId] = useState(null);
   const newKeyInputRef = useRef(null);
   const [sidepanelPos, setSidepanelPos] = useState({ top: 0, bottom: 0 });
+  const [moveableRerenderKey, setMoveableRerenderKey] = useState(0);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -408,7 +409,7 @@ export default function App() {
       </div>
       {selectedRef && selectedObj && (
         <Moveable
-          key={`moveable-${selectedIdx}`}
+          key={`moveable-${selectedIdx}-${moveableRerenderKey}`}
           target={selectedRef}
           origin={false}
           draggable={!pending}
@@ -564,6 +565,7 @@ export default function App() {
                       );
                       if (window.setObjectLocation)
                         window.setObjectLocation(selectedIdx, newObj);
+                      setMoveableRerenderKey((k) => k + 1); // force Moveable remount
                     }}
                     style={{
                       flex: 1,
