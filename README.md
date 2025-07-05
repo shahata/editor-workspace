@@ -5,14 +5,14 @@ A modular, type-safe, mobile-friendly whiteboard React component with draggable,
 ## Install
 
 ```
-npm install @your-org/editor-whiteboard react react-dom react-moveable
+npm install @shahata5/editor-whiteboard react react-dom react-moveable
 ```
 
 ## Usage
 
 ```tsx
 import React from 'react';
-import { Editor, EditorImplementation, ObjectLocation, ObjectDataPair } from '@your-org/editor-whiteboard';
+import { Editor, EditorImplementation, ObjectLocation, ObjectDataPair } from '@shahata5/editor-whiteboard';
 
 const editorImpl: EditorImplementation = {
   getObjectLocations: () => [...],

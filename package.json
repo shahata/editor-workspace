@@ -1,7 +1,6 @@
 {
-  "name": "my-vite-app",
-  "private": true,
-  "version": "0.0.0",
+  "name": "@shahata5/editor-whiteboard",
+  "version": "1.0.0",
   "type": "module",
   "main": "dist/index.js",
   "module": "dist/index.esm.js",
@@ -21,11 +20,7 @@
     "lint": "eslint .",
     "preview": "vite preview"
   },
-  "dependencies": {
-    "react": ">=18.0.0",
-    "react-dom": ">=18.0.0",
-    "react-moveable": ">=0.56.0"
-  },
+  "dependencies": {},
   "devDependencies": {
     "@eslint/js": "^9.29.0",
     "@types/react": "^19.1.8",
