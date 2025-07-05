@@ -1,66 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import './globals.jsx';
+import './globals.tsx';
 import Moveable from 'react-moveable';
 import { flushSync } from 'react-dom';
-
-// Assign the default getObjectLocations globally, outside the component
-if (typeof window !== 'undefined' && !window.getObjectLocations) {
-  window.getObjectLocations = function () {
-    return [];
-  };
-}
-
-// Assign the default generateFromPrompt globally, outside the component
-if (typeof window !== 'undefined' && !window.generateFromPrompt) {
-  window.generateFromPrompt = function () {
-    // New random board size
-    const width = 300 + Math.floor(Math.random() * 200); // 300-500
-    const height = 500 + Math.floor(Math.random() * 200); // 500-700
-    // Generate 5 random rectangles with random zIndex and rotation
-    const locations = Array.from({ length: 5 }, () => {
-      const w = Math.floor(40 + Math.random() * 120);
-      const h = Math.floor(40 + Math.random() * 120);
-      const l = Math.floor(Math.random() * (width - w));
-      const t = Math.floor(Math.random() * (height - h));
-      const zIndex = Math.floor(Math.random() * 10) + 1; // 1-10
-      const rotation = Math.floor(Math.random() * 360); // 0-359 degrees
-      return { top: t, left: l, width: w, height: h, zIndex, rotation };
-    });
-    // The component to render (placeholder look: diagonal lines pattern)
-    const component = () => (
-      <div
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          width: '100%',
-          height: '100%',
-        }}
-      >
-        {locations.map((obj, idx) => (
-          <div
-            key={idx}
-            style={{
-              position: 'absolute',
-              top: obj.top,
-              left: obj.left,
-              width: obj.width,
-              height: obj.height,
-              background: `repeating-linear-gradient(135deg, #e0e0e0 0 8px, #bdbdbd 8px 16px)`,
-              borderRadius: 8,
-              opacity: 0.7,
-              zIndex: obj.zIndex,
-              transform: `rotate(${obj.rotation}deg)`,
-            }}
-          />
-        ))}
-      </div>
-    );
-    return new Promise((resolve) =>
-      setTimeout(() => resolve({ component, width, height, locations }), 1000),
-    );
-  };
-}
 
 export default function App() {
   const [text, setText] = useState('');
@@ -82,6 +23,9 @@ export default function App() {
   const minBoardWidth = 200;
   const minBoardHeight = 200;
   const isResizing = useRef(null); // { type: 'width' | 'height', startX, startY, startWidth, startHeight }
+  const [sidepanelData, setSidepanelData] = useState(null);
+  const [sidepanelId, setSidepanelId] = useState(null);
+  const newKeyInputRef = useRef(null);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -121,26 +65,39 @@ export default function App() {
     };
   }, []);
 
+  useEffect(() => {
+    setOverlayLocations((prev) =>
+      prev.map((obj, i) => ({ id: obj.id ?? (obj.id = `obj-${i}`), ...obj })),
+    );
+  }, []);
+
+  useEffect(() => {
+    if (
+      selectedIdx !== null &&
+      overlayLocations[selectedIdx] &&
+      window.getObjectData
+    ) {
+      const id = overlayLocations[selectedIdx].id;
+      setSidepanelId(id);
+      Promise.resolve(window.getObjectData(id)).then((data) => {
+        setSidepanelData(Array.isArray(data) ? data : []);
+      });
+    } else {
+      setSidepanelId(null);
+      setSidepanelData(null);
+    }
+  }, [selectedIdx, overlayLocations]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSelectedIdx(null);
     if (typeof window !== 'undefined' && window.generateFromPrompt) {
       setPending(true);
       const result = await window.generateFromPrompt(text);
-      if (
-        result &&
-        result.component &&
-        result.width &&
-        result.height &&
-        result.locations
-      ) {
+      if (result && result.component && result.width && result.height) {
         setGeneratedComponent(() => result.component);
         setBoardWidth(result.width);
         setBoardHeight(result.height);
-        // Update global getObjectLocations to return the new locations
-        if (window.getObjectLocations) {
-          window.getObjectLocations = () => result.locations;
-        }
       }
       setOverlayLocations(
         window.getObjectLocations ? window.getObjectLocations() : [],
@@ -200,6 +157,32 @@ export default function App() {
     isResizing.current = null;
     window.removeEventListener('mousemove', handleBoardResizeMouseMove);
     window.removeEventListener('mouseup', handleBoardResizeMouseUp);
+  }
+
+  function handleSidepanelChange(idx, newValue) {
+    setSidepanelData((prev) => {
+      const updated = prev.map((kv, i) =>
+        i === idx ? { ...kv, value: newValue } : kv,
+      );
+      if (sidepanelId && window.setObjectData) {
+        window.setObjectData(sidepanelId, updated);
+      }
+      return updated;
+    });
+  }
+
+  function handleAddKey() {
+    setSidepanelData((prev) => {
+      const newKey = `newKey${prev.length + 1}`;
+      const updated = [...prev, { key: newKey, value: '' }];
+      if (sidepanelId && window.setObjectData) {
+        window.setObjectData(sidepanelId, updated);
+      }
+      setTimeout(() => {
+        if (newKeyInputRef.current) newKeyInputRef.current.focus();
+      }, 0);
+      return updated;
+    });
   }
 
   return (
@@ -458,6 +441,82 @@ export default function App() {
           width={selectedObj.width}
           height={selectedObj.height}
         />
+      )}
+      {/* Sidepanel for object data editing */}
+      {sidepanelData && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            right: 0,
+            width: 340,
+            height: '100vh',
+            background: '#fff',
+            boxShadow: '-4px 0 16px rgba(0,0,0,0.10)',
+            zIndex: 200000,
+            padding: 24,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 16,
+          }}
+        >
+          <h3
+            style={{
+              margin: 0,
+              marginBottom: 16,
+              fontWeight: 700,
+              fontSize: 22,
+            }}
+          >
+            Object Data
+          </h3>
+          {sidepanelData.map((kv, i) => (
+            <div
+              key={kv.key}
+              style={{
+                display: 'flex',
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 8,
+              }}
+            >
+              <span style={{ minWidth: 80, fontWeight: 500 }}>{kv.key}</span>
+              <input
+                type="text"
+                value={kv.value}
+                onChange={(e) => handleSidepanelChange(i, e.target.value)}
+                style={{
+                  flex: 1,
+                  padding: 6,
+                  borderRadius: 4,
+                  border: '1px solid #bbb',
+                  fontSize: 16,
+                }}
+                ref={
+                  i === sidepanelData.length - 1 ? newKeyInputRef : undefined
+                }
+              />
+            </div>
+          ))}
+          <button
+            type="button"
+            onClick={handleAddKey}
+            style={{
+              marginTop: 16,
+              padding: '10px 18px',
+              borderRadius: 8,
+              border: '1px solid #1976d2',
+              background: '#fff',
+              color: '#1976d2',
+              fontWeight: 'bold',
+              fontSize: 16,
+              cursor: 'pointer',
+              alignSelf: 'flex-end',
+            }}
+          >
+            + Add Key
+          </button>
+        </div>
       )}
       <form
         style={{
