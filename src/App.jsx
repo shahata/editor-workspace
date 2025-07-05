@@ -172,20 +172,6 @@ export default function App() {
     });
   }
 
-  function handleAddKey() {
-    setSidepanelData((prev) => {
-      const newKey = `newKey${prev.length + 1}`;
-      const updated = [...prev, { key: newKey, value: '' }];
-      if (sidepanelId && window.setObjectData) {
-        window.setObjectData(sidepanelId, updated);
-      }
-      setTimeout(() => {
-        if (newKeyInputRef.current) newKeyInputRef.current.focus();
-      }, 0);
-      return updated;
-    });
-  }
-
   // Update sidepanel position when board size/position changes
   useEffect(() => {
     function updatePanelPos() {
@@ -539,24 +525,6 @@ export default function App() {
               />
             </div>
           ))}
-          <button
-            type="button"
-            onClick={handleAddKey}
-            style={{
-              marginTop: 16,
-              padding: '10px 18px',
-              borderRadius: 8,
-              border: '1px solid #1976d2',
-              background: '#fff',
-              color: '#1976d2',
-              fontWeight: 'bold',
-              fontSize: 16,
-              cursor: 'pointer',
-              alignSelf: 'flex-end',
-            }}
-          >
-            + Add Key
-          </button>
         </div>
       )}
       <form
