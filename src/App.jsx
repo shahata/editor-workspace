@@ -26,6 +26,7 @@ export default function App() {
   const [sidepanelData, setSidepanelData] = useState(null);
   const [sidepanelId, setSidepanelId] = useState(null);
   const newKeyInputRef = useRef(null);
+  const [sidepanelPos, setSidepanelPos] = useState({ top: 0, bottom: 0 });
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -184,6 +185,41 @@ export default function App() {
       return updated;
     });
   }
+
+  // Update sidepanel position when board size/position changes
+  useEffect(() => {
+    function updatePanelPos() {
+      const board = whiteboardRef.current;
+      const prompt = document.querySelector('form');
+      if (board && prompt) {
+        const boardRect = board.getBoundingClientRect();
+        const promptRect = prompt.getBoundingClientRect();
+        setSidepanelPos({
+          top: boardRect.top,
+          bottom: window.innerHeight - promptRect.top + 24, // 24px gap above prompt
+        });
+      }
+    }
+    updatePanelPos();
+    window.addEventListener('resize', updatePanelPos);
+    return () => window.removeEventListener('resize', updatePanelPos);
+  }, [boardWidth, boardHeight]);
+
+  useEffect(() => {
+    // Also update on mount and when overlays change (in case of board move)
+    setTimeout(() => {
+      const board = whiteboardRef.current;
+      const prompt = document.querySelector('form');
+      if (board && prompt) {
+        const boardRect = board.getBoundingClientRect();
+        const promptRect = prompt.getBoundingClientRect();
+        setSidepanelPos({
+          top: boardRect.top,
+          bottom: window.innerHeight - promptRect.top + 24,
+        });
+      }
+    }, 0);
+  }, [sidepanelData, boardWidth, boardHeight]);
 
   return (
     <div
@@ -447,10 +483,10 @@ export default function App() {
         <div
           style={{
             position: 'fixed',
-            top: 0,
+            top: sidepanelPos.top,
             right: 0,
             width: 340,
-            height: '100vh',
+            bottom: sidepanelPos.bottom,
             background: '#fff',
             boxShadow: '-4px 0 16px rgba(0,0,0,0.10)',
             zIndex: 200000,
@@ -458,6 +494,11 @@ export default function App() {
             display: 'flex',
             flexDirection: 'column',
             gap: 16,
+            borderTopLeftRadius: 24,
+            borderBottomLeftRadius: 24,
+            borderTopRightRadius: 0,
+            borderBottomRightRadius: 0,
+            overflow: 'hidden',
           }}
         >
           <h3
