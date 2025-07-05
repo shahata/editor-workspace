@@ -21,7 +21,6 @@ if (typeof window !== 'undefined' && !window.generateFromPrompt) {
       const rotation = Math.floor(Math.random() * 360); // 0-359 degrees
       return { top: t, left: l, width: w, height: h, zIndex, rotation };
     });
-    window._currentLocations = locations;
     // The component to render (placeholder look: diagonal lines pattern)
     const component = () => (
       <div
@@ -53,7 +52,10 @@ if (typeof window !== 'undefined' && !window.generateFromPrompt) {
       </div>
     );
     return new Promise((resolve) =>
-      setTimeout(() => resolve({ component, width, height, locations }), 1000),
+      setTimeout(() => {
+        window._currentLocations = locations;
+        resolve({ component, width, height, locations });
+      }, 1000),
     );
   };
 }
