@@ -1,17 +1,12 @@
 import React from 'react';
 import './global.d.ts';
 
-declare global {
-  interface Window {
-    _objectData?: Record<string, ObjectDataPair[]>;
-    _currentLocations?: ObjectLocation[];
-    _onLocationsChanged?: (locations: ObjectLocation[]) => void;
-  }
-}
+let objectData;
+let currentLocations;
 
 if (typeof window !== 'undefined' && !window.getObjectLocations) {
   window.getObjectLocations = function (): ObjectLocation[] {
-    return window._currentLocations || [];
+    return currentLocations || [];
   };
 }
 
@@ -30,11 +25,16 @@ if (typeof window !== 'undefined' && !window.generateFromPrompt) {
       const rotation = Math.floor(Math.random() * 360);
       const id = `obj-${Date.now()}-${i}-${Math.floor(Math.random() * 10000)}`;
       if (typeof window !== 'undefined') {
-        if (!window._objectData) window._objectData = {};
-        window._objectData[id] = [
-          { key: 'id', value: `${id}` },
+        if (!objectData) objectData = {};
+        objectData[id] = [
+          { key: 'name', value: `Object ${id}` },
           { key: 'type', value: 'rectangle' },
-          { key: 'note', value: '' },
+          {
+            key: 'background',
+            value: `repeating-linear-gradient(135deg, #e0e0e0 0 8px, #bdbdbd 8px 16px)`,
+          },
+          { key: 'borderRadius', value: '8' },
+          { key: 'opacity', value: '0.7' },
         ];
       }
       return { id, top: t, left: l, width: w, height: h, zIndex, rotation };
@@ -49,28 +49,45 @@ if (typeof window !== 'undefined' && !window.generateFromPrompt) {
           height: '100%',
         }}
       >
-        {(window._currentLocations || []).map((obj, idx) => (
-          <div
-            key={obj.id}
-            style={{
-              position: 'absolute',
-              top: obj.top,
-              left: obj.left,
-              width: obj.width,
-              height: obj.height,
-              background: `repeating-linear-gradient(135deg, #e0e0e0 0 8px, #bdbdbd 8px 16px)`,
-              borderRadius: 8,
-              opacity: 0.7,
-              zIndex: obj.zIndex,
-              transform: `rotate(${obj.rotation}deg)`,
-            }}
-          />
-        ))}
+        {(currentLocations || []).map((obj, idx) => {
+          const data = objectData && objectData[obj.id];
+          const bg = data
+            ? data.find((kv) => kv.key === 'background')?.value ||
+              `repeating-linear-gradient(135deg, #e0e0e0 0 8px, #bdbdbd 8px 16px)`
+            : `repeating-linear-gradient(135deg, #e0e0e0 0 8px, #bdbdbd 8px 16px)`;
+          const borderRadius = data
+            ? parseFloat(
+                data.find((kv) => kv.key === 'borderRadius')?.value || '8',
+              )
+            : 8;
+          const opacity = data
+            ? parseFloat(
+                data.find((kv) => kv.key === 'opacity')?.value || '0.7',
+              )
+            : 0.7;
+          return (
+            <div
+              key={obj.id}
+              style={{
+                position: 'absolute',
+                top: obj.top,
+                left: obj.left,
+                width: obj.width,
+                height: obj.height,
+                background: bg,
+                borderRadius: borderRadius,
+                opacity: opacity,
+                zIndex: obj.zIndex,
+                transform: `rotate(${obj.rotation}deg)`,
+              }}
+            />
+          );
+        })}
       </div>
     );
     return new Promise((resolve) => {
       setTimeout(() => {
-        window._currentLocations = locations;
+        currentLocations = locations;
         resolve({ component, width, height });
       }, 1000);
     });
@@ -82,40 +99,42 @@ if (typeof window !== 'undefined' && !window.setObjectLocation) {
     index: number,
     newLocation: ObjectLocation,
   ): void {
-    if (Array.isArray(window._currentLocations)) {
-      window._currentLocations = window._currentLocations.map((obj, i) =>
+    if (Array.isArray(currentLocations)) {
+      currentLocations = currentLocations.map((obj, i) =>
         i === index ? newLocation : obj,
       );
-      if (typeof window._onLocationsChanged === 'function') {
-        window._onLocationsChanged(window._currentLocations);
-      }
     }
     console.log('setObjectLocation called:', { index, newLocation });
   };
 }
 
-if (typeof window !== 'undefined' && !window._objectData) {
-  window._objectData = {};
+if (typeof window !== 'undefined' && !objectData) {
+  objectData = {};
 }
 
 if (typeof window !== 'undefined' && !window.getObjectData) {
   window.getObjectData = function (id: string): Promise<ObjectDataPair[]> {
-    if (!window._objectData) window._objectData = {};
-    if (!window._objectData[id]) {
-      window._objectData[id] = [
+    if (!objectData) objectData = {};
+    if (!objectData[id]) {
+      objectData[id] = [
         { key: 'name', value: `Object ${id}` },
         { key: 'type', value: 'rectangle' },
-        { key: 'note', value: '' },
+        {
+          key: 'background',
+          value: `repeating-linear-gradient(135deg, #e0e0e0 0 8px, #bdbdbd 8px 16px)`,
+        },
+        { key: 'borderRadius', value: '8' },
+        { key: 'opacity', value: '0.7' },
       ];
     }
-    return Promise.resolve(window._objectData[id]);
+    return Promise.resolve(objectData[id]);
   };
 }
 
 if (typeof window !== 'undefined' && !window.setObjectData) {
   window.setObjectData = function (id: string, arr: ObjectDataPair[]): void {
-    if (!window._objectData) window._objectData = {};
-    window._objectData[id] = arr;
+    if (!objectData) objectData = {};
+    objectData[id] = arr;
     console.log('setObjectData', id, arr);
   };
 }

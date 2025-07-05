@@ -17,7 +17,6 @@ export default function App() {
       : [],
   );
   const [selectedIdx, setSelectedIdx] = useState(null);
-  const [generatedComponentKey, setGeneratedComponentKey] = useState(0);
   const overlayRefs = useRef([]);
   const whiteboardRef = useRef(null);
   const minBoardWidth = 200;
@@ -28,20 +27,6 @@ export default function App() {
   const newKeyInputRef = useRef(null);
   const [sidepanelPos, setSidepanelPos] = useState({ top: 0, bottom: 0 });
   const [moveableRerenderKey, setMoveableRerenderKey] = useState(0);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      window._onLocationsChanged = (newLocations) => {
-        setOverlayLocations(Array.isArray(newLocations) ? newLocations : []);
-        setGeneratedComponentKey((k) => k + 1); // force re-render of generated component
-      };
-    }
-    return () => {
-      if (typeof window !== 'undefined') {
-        window._onLocationsChanged = undefined;
-      }
-    };
-  }, []);
 
   useEffect(() => {
     // Ensure refs array matches overlays
@@ -288,11 +273,7 @@ export default function App() {
         }}
       >
         {/* Render the generated component (from the promise) */}
-        {generatedComponent
-          ? React.createElement(generatedComponent, {
-              key: generatedComponentKey,
-            })
-          : null}
+        {generatedComponent ? React.createElement(generatedComponent) : null}
         {/* Render overlays for hover/fill, always on top */}
         <div
           style={{
@@ -539,44 +520,46 @@ export default function App() {
               }}
             >
               <div style={{ fontWeight: 600, marginBottom: 8 }}>Location</div>
-              {['top', 'left', 'width', 'height', 'rotation'].map((field) => (
-                <div
-                  key={field}
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    gap: 8,
-                    marginBottom: 8,
-                  }}
-                >
-                  <span style={{ minWidth: 80 }}>
-                    {field.charAt(0).toUpperCase() + field.slice(1)}
-                  </span>
-                  <input
-                    type="number"
-                    value={overlayLocations[selectedIdx][field] ?? 0}
-                    onChange={(e) => {
-                      const value = Number(e.target.value);
-                      const obj = overlayLocations[selectedIdx];
-                      const newObj = { ...obj, [field]: value };
-                      setOverlayLocations((prev) =>
-                        prev.map((o, i) => (i === selectedIdx ? newObj : o)),
-                      );
-                      if (window.setObjectLocation)
-                        window.setObjectLocation(selectedIdx, newObj);
-                      setMoveableRerenderKey((k) => k + 1); // force Moveable remount
-                    }}
+              {['top', 'left', 'width', 'height', 'rotation', 'zIndex'].map(
+                (field) => (
+                  <div
+                    key={field}
                     style={{
-                      flex: 1,
-                      padding: 6,
-                      borderRadius: 4,
-                      border: '1px solid #bbb',
-                      fontSize: 16,
+                      display: 'flex',
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: 8,
+                      marginBottom: 8,
                     }}
-                  />
-                </div>
-              ))}
+                  >
+                    <span style={{ minWidth: 80 }}>
+                      {field.charAt(0).toUpperCase() + field.slice(1)}
+                    </span>
+                    <input
+                      type="number"
+                      value={overlayLocations[selectedIdx][field] ?? 0}
+                      onChange={(e) => {
+                        const value = Number(e.target.value);
+                        const obj = overlayLocations[selectedIdx];
+                        const newObj = { ...obj, [field]: value };
+                        setOverlayLocations((prev) =>
+                          prev.map((o, i) => (i === selectedIdx ? newObj : o)),
+                        );
+                        if (window.setObjectLocation)
+                          window.setObjectLocation(selectedIdx, newObj);
+                        setMoveableRerenderKey((k) => k + 1); // force Moveable remount
+                      }}
+                      style={{
+                        flex: 1,
+                        padding: 6,
+                        borderRadius: 4,
+                        border: '1px solid #bbb',
+                        fontSize: 16,
+                      }}
+                    />
+                  </div>
+                ),
+              )}
             </div>
           </div>
         )}
