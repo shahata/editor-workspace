@@ -23,7 +23,7 @@ export type EditorImplementation = {
   generateFromPrompt: (
     prompt: string,
   ) => Promise<{ component: FC; width: number; height: number }>;
-  setObjectLocation: (index: number, newLocation: ObjectLocation) => void;
+  setObjectLocation: (id: string, newLocation: ObjectLocation) => void;
   getObjectData: (id: string) => ObjectDataPair[];
   setObjectData: (id: string, data: ObjectDataPair[]) => void;
 };
@@ -450,7 +450,9 @@ export function Editor({ editorImpl }: { editorImpl: EditorImplementation }) {
                 prev.map((o, i) => (i === selectedIdx ? newObj : o)),
               );
             });
-            editorImpl.setObjectLocation(selectedIdx as number, newObj);
+            if (selectedObj) {
+              editorImpl.setObjectLocation(selectedObj.id, newObj);
+            }
           }}
           onResize={({ width, height, drag }) => {
             const { left, top } = drag;
@@ -460,7 +462,9 @@ export function Editor({ editorImpl }: { editorImpl: EditorImplementation }) {
                 prev.map((o, i) => (i === selectedIdx ? newObj : o)),
               );
             });
-            editorImpl.setObjectLocation(selectedIdx as number, newObj);
+            if (selectedObj) {
+              editorImpl.setObjectLocation(selectedObj.id, newObj);
+            }
           }}
           onRotate={({ beforeRotate }) => {
             const newObj = { ...selectedObj, rotation: beforeRotate };
@@ -469,7 +473,9 @@ export function Editor({ editorImpl }: { editorImpl: EditorImplementation }) {
                 prev.map((o, i) => (i === selectedIdx ? newObj : o)),
               );
             });
-            editorImpl.setObjectLocation(selectedIdx as number, newObj);
+            if (selectedObj) {
+              editorImpl.setObjectLocation(selectedObj.id, newObj);
+            }
           }}
           rotation={selectedObj.rotation || 0}
           left={selectedObj.left}
@@ -589,10 +595,9 @@ export function Editor({ editorImpl }: { editorImpl: EditorImplementation }) {
                       setOverlayLocations((prev) =>
                         prev.map((o, i) => (i === selectedIdx ? newObj : o)),
                       );
-                      editorImpl.setObjectLocation(
-                        selectedIdx as number,
-                        newObj,
-                      );
+                      if (selectedObj) {
+                        editorImpl.setObjectLocation(selectedObj.id, newObj);
+                      }
                       setMoveableRerenderKey((k) => k + 1); // force Moveable remount
                     }}
                     style={{
