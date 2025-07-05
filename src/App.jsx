@@ -40,14 +40,21 @@ export default function App() {
       ? window.getObjectLocations()
       : [],
   );
+  const [showAreas, setShowAreas] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (typeof window !== 'undefined' && window.generateFromPrompt) {
-      await window.generateFromPrompt();
+      await window.generateFromPrompt(text);
       setObjectLocations(window.getObjectLocations());
     }
     setText('');
+  };
+
+  const handleRefresh = () => {
+    if (typeof window !== 'undefined' && window.getObjectLocations) {
+      setObjectLocations(window.getObjectLocations());
+    }
   };
 
   return (
@@ -63,6 +70,53 @@ export default function App() {
         position: 'relative',
       }}
     >
+      {/* Left panel with buttons */}
+      <div
+        style={{
+          position: 'fixed',
+          top: 32,
+          left: 24,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 16,
+          zIndex: 100,
+        }}
+      >
+        <button
+          onClick={() => setShowAreas((v) => !v)}
+          style={{
+            padding: '10px 18px',
+            borderRadius: 8,
+            border: '1px solid #1976d2',
+            background: showAreas ? '#1976d2' : '#fff',
+            color: showAreas ? '#fff' : '#1976d2',
+            fontWeight: 'bold',
+            fontSize: 16,
+            cursor: 'pointer',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+            transition: 'background 0.2s, color 0.2s',
+          }}
+        >
+          {showAreas ? 'Hide Areas' : 'Show Areas'}
+        </button>
+        <button
+          onClick={handleRefresh}
+          style={{
+            padding: '10px 18px',
+            borderRadius: 8,
+            border: '1px solid #1976d2',
+            background: '#fff',
+            color: '#1976d2',
+            fontWeight: 'bold',
+            fontSize: 16,
+            cursor: 'pointer',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+            transition: 'background 0.2s, color 0.2s',
+          }}
+        >
+          Refresh
+        </button>
+      </div>
       <div
         style={{
           width: 375,
@@ -99,14 +153,14 @@ export default function App() {
                 left: obj.left,
                 width: obj.width,
                 height: obj.height,
-                background: '#e3e3e3',
+                background: showAreas ? '#e3e3e3' : 'transparent',
                 border:
                   hoveredIdx === idx
                     ? '2px solid #4fc3f7'
                     : '2px solid transparent',
                 borderRadius: 8,
                 boxSizing: 'border-box',
-                transition: 'border 0.15s',
+                transition: 'border 0.15s, background 0.15s',
                 cursor: 'pointer',
               }}
               onMouseEnter={() => setHoveredIdx(idx)}
