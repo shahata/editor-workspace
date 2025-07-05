@@ -20,7 +20,7 @@ declare global {
       height: number;
     }>;
     setObjectLocation: (index: number, newLocation: ObjectLocation) => void;
-    getObjectData: (id: string) => Promise<ObjectDataPair[]>;
+    getObjectData: (id: string) => ObjectDataPair[];
     setObjectData: (id: string, data: ObjectDataPair[]) => void;
   }
 }

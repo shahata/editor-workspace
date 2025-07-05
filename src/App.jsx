@@ -67,9 +67,8 @@ export default function App() {
     ) {
       const id = overlayLocations[selectedIdx].id;
       setSidepanelId(id);
-      Promise.resolve(window.getObjectData(id)).then((data) => {
-        setSidepanelData(Array.isArray(data) ? data : []);
-      });
+      const data = window.getObjectData(id);
+      setSidepanelData(Array.isArray(data) ? data : []);
     } else {
       setSidepanelId(null);
       setSidepanelData(null);

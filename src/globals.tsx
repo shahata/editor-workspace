@@ -1,8 +1,8 @@
 import React from 'react';
 import './global.d.ts';
 
-let objectData;
 let currentLocations;
+let _objectData: Record<string, ObjectDataPair[]> = {};
 
 if (typeof window !== 'undefined' && !window.getObjectLocations) {
   window.getObjectLocations = function (): ObjectLocation[] {
@@ -25,8 +25,8 @@ if (typeof window !== 'undefined' && !window.generateFromPrompt) {
       const rotation = Math.floor(Math.random() * 360);
       const id = `obj-${Date.now()}-${i}-${Math.floor(Math.random() * 10000)}`;
       if (typeof window !== 'undefined') {
-        if (!objectData) objectData = {};
-        objectData[id] = [
+        if (!_objectData[id]) _objectData[id] = [];
+        _objectData[id] = [
           { key: 'name', value: `Object ${id}` },
           { key: 'type', value: 'rectangle' },
           {
@@ -50,7 +50,7 @@ if (typeof window !== 'undefined' && !window.generateFromPrompt) {
         }}
       >
         {(currentLocations || []).map((obj, idx) => {
-          const data = objectData && objectData[obj.id];
+          const data = _objectData[obj.id];
           const bg = data
             ? data.find((kv) => kv.key === 'background')?.value ||
               `repeating-linear-gradient(135deg, #e0e0e0 0 8px, #bdbdbd 8px 16px)`
@@ -108,15 +108,10 @@ if (typeof window !== 'undefined' && !window.setObjectLocation) {
   };
 }
 
-if (typeof window !== 'undefined' && !objectData) {
-  objectData = {};
-}
-
 if (typeof window !== 'undefined' && !window.getObjectData) {
-  window.getObjectData = function (id: string): Promise<ObjectDataPair[]> {
-    if (!objectData) objectData = {};
-    if (!objectData[id]) {
-      objectData[id] = [
+  window.getObjectData = function (id: string): ObjectDataPair[] {
+    if (!_objectData[id]) {
+      _objectData[id] = [
         { key: 'name', value: `Object ${id}` },
         { key: 'type', value: 'rectangle' },
         {
@@ -127,14 +122,13 @@ if (typeof window !== 'undefined' && !window.getObjectData) {
         { key: 'opacity', value: '0.7' },
       ];
     }
-    return Promise.resolve(objectData[id]);
+    return _objectData[id];
   };
 }
 
 if (typeof window !== 'undefined' && !window.setObjectData) {
   window.setObjectData = function (id: string, arr: ObjectDataPair[]): void {
-    if (!objectData) objectData = {};
-    objectData[id] = arr;
+    _objectData[id] = arr;
     console.log('setObjectData', id, arr);
   };
 }
