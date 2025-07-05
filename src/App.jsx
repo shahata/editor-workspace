@@ -51,12 +51,13 @@ export default function App() {
 
   useEffect(() => {
     function handleDocumentClick(e) {
-      // Unfocus if click is not on an overlay or Moveable handle
+      // Unfocus if click is not on an overlay, Moveable handle, or the sidepanel
       const isOverlay = e.target.closest('[data-overlay]');
       const isMoveable = e.target.closest(
         '.moveable-control, .moveable-line, .moveable-area',
       );
-      if (!isOverlay && !isMoveable) {
+      const isSidepanel = e.target.closest('[data-sidepanel]');
+      if (!isOverlay && !isMoveable && !isSidepanel) {
         setSelectedIdx(null);
       }
     }
@@ -465,68 +466,118 @@ export default function App() {
         />
       )}
       {/* Sidepanel for object data editing */}
-      {sidepanelData && (
-        <div
-          style={{
-            position: 'fixed',
-            top: sidepanelPos.top,
-            right: 0,
-            width: 340,
-            bottom: sidepanelPos.bottom,
-            background: '#fff',
-            boxShadow: '-4px 0 16px rgba(0,0,0,0.10)',
-            zIndex: 200000,
-            padding: 24,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 16,
-            borderTopLeftRadius: 24,
-            borderBottomLeftRadius: 24,
-            borderTopRightRadius: 0,
-            borderBottomRightRadius: 0,
-            overflow: 'hidden',
-          }}
-        >
-          <h3
+      {sidepanelData &&
+        selectedIdx !== null &&
+        overlayLocations[selectedIdx] && (
+          <div
+            data-sidepanel
             style={{
-              margin: 0,
-              marginBottom: 16,
-              fontWeight: 700,
-              fontSize: 22,
+              position: 'fixed',
+              top: sidepanelPos.top,
+              right: 0,
+              width: 340,
+              bottom: sidepanelPos.bottom,
+              background: '#fff',
+              boxShadow: '-4px 0 16px rgba(0,0,0,0.10)',
+              zIndex: 200000,
+              padding: 24,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 16,
+              borderTopLeftRadius: 24,
+              borderBottomLeftRadius: 24,
+              borderTopRightRadius: 0,
+              borderBottomRightRadius: 0,
+              overflow: 'hidden',
             }}
           >
-            Object Data
-          </h3>
-          {sidepanelData.map((kv, i) => (
-            <div
-              key={kv.key}
+            <h3
               style={{
-                display: 'flex',
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: 8,
+                margin: 0,
+                marginBottom: 16,
+                fontWeight: 700,
+                fontSize: 22,
               }}
             >
-              <span style={{ minWidth: 80, fontWeight: 500 }}>{kv.key}</span>
-              <input
-                type="text"
-                value={kv.value}
-                onChange={(e) => handleSidepanelChange(i, e.target.value)}
+              Object Data
+            </h3>
+            {sidepanelData.map((kv, i) => (
+              <div
+                key={kv.key}
                 style={{
-                  flex: 1,
-                  padding: 6,
-                  borderRadius: 4,
-                  border: '1px solid #bbb',
-                  fontSize: 16,
+                  display: 'flex',
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 8,
                 }}
-                ref={
-                  i === sidepanelData.length - 1 ? newKeyInputRef : undefined
-                }
-              />
+              >
+                <span style={{ minWidth: 80, fontWeight: 500 }}>{kv.key}</span>
+                <input
+                  type="text"
+                  value={kv.value}
+                  onChange={(e) => handleSidepanelChange(i, e.target.value)}
+                  style={{
+                    flex: 1,
+                    padding: 6,
+                    borderRadius: 4,
+                    border: '1px solid #bbb',
+                    fontSize: 16,
+                  }}
+                  ref={
+                    i === sidepanelData.length - 1 ? newKeyInputRef : undefined
+                  }
+                />
+              </div>
+            ))}
+            {/* Object location fields */}
+            <div
+              style={{
+                marginTop: 24,
+                borderTop: '1px solid #eee',
+                paddingTop: 16,
+              }}
+            >
+              <div style={{ fontWeight: 600, marginBottom: 8 }}>Location</div>
+              {['top', 'left', 'width', 'height', 'rotation'].map((field) => (
+                <div
+                  key={field}
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 8,
+                    marginBottom: 8,
+                  }}
+                >
+                  <span style={{ minWidth: 80 }}>
+                    {field.charAt(0).toUpperCase() + field.slice(1)}
+                  </span>
+                  <input
+                    type="number"
+                    value={overlayLocations[selectedIdx][field] ?? 0}
+                    onChange={(e) => {
+                      const value = Number(e.target.value);
+                      const obj = overlayLocations[selectedIdx];
+                      const newObj = { ...obj, [field]: value };
+                      setOverlayLocations((prev) =>
+                        prev.map((o, i) => (i === selectedIdx ? newObj : o)),
+                      );
+                      if (window.setObjectLocation)
+                        window.setObjectLocation(selectedIdx, newObj);
+                    }}
+                    style={{
+                      flex: 1,
+                      padding: 6,
+                      borderRadius: 4,
+                      border: '1px solid #bbb',
+                      fontSize: 16,
+                    }}
+                  />
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-      )}
+          </div>
+        )}
       <form
         style={{
           width: 1125,
