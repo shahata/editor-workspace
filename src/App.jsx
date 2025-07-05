@@ -470,6 +470,7 @@ export default function App() {
               borderTopRightRadius: 0,
               borderBottomRightRadius: 0,
               overflow: 'hidden',
+              overflowY: 'auto',
             }}
           >
             <h3
