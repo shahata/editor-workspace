@@ -1,69 +1,55 @@
-# React + TypeScript + Vite
+# Editor Whiteboard React Component
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A modular, type-safe, mobile-friendly whiteboard React component with draggable, resizable, and rotatable areas, live-editable sidepanel, and prompt-based generation.
 
-Currently, two official plugins are available:
+## Install
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default tseslint.config([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      ...tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      ...tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      ...tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```
+npm install @shahata5/editor-whiteboard react react-dom react-moveable
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Usage
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+```tsx
+import React from 'react';
+import { Editor, EditorImplementation, ObjectLocation, ObjectDataPair } from '@shahata5/editor-whiteboard';
 
-export default tseslint.config([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+const editorImpl: EditorImplementation = {
+  getObjectLocations: () => [...],
+  generateFromPrompt: async (prompt) => ({ component: ... , width: 375, height: 667 }),
+  setObjectLocation: (index, newLocation) => { ... },
+  getObjectData: (id) => [...],
+  setObjectData: (id, data) => { ... },
+};
+
+export default function App() {
+  return <Editor editorImpl={editorImpl} />;
+}
 ```
+
+## API
+
+### `<Editor editorImpl={...} />`
+
+- `editorImpl: EditorImplementation` (**required**):
+  - `getObjectLocations(): ObjectLocation[]` — Return all area locations.
+  - `generateFromPrompt(prompt: string): Promise<{ component: React.FC, width: number, height: number }>` — Generate board from prompt.
+  - `setObjectLocation(index: number, newLocation: ObjectLocation): void` — Update area location.
+  - `getObjectData(id: string): ObjectDataPair[]` — Get key/value data for area.
+  - `setObjectData(id: string, data: ObjectDataPair[]): void` — Set key/value data for area.
+
+### Types
+
+- `ObjectLocation`: `{ id: string, top: number, left: number, width: number, height: number, zIndex: number, rotation: number }`
+- `ObjectDataPair`: `{ key: string, value: string }`
+- `EditorImplementation`: see above
+
+## Peer Dependencies
+
+- `react` >= 18
+- `react-dom` >= 18
+- `react-moveable` >= 0.56
+
+---
+
+MIT License
