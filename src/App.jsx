@@ -16,44 +16,96 @@ if (typeof window !== 'undefined' && !window.getObjectLocations) {
 // Assign the default generateFromPrompt globally, outside the component
 if (typeof window !== 'undefined' && !window.generateFromPrompt) {
   window.generateFromPrompt = function () {
-    // Whiteboard size
-    const boardWidth = 375;
-    const boardHeight = 667;
+    // New random board size
+    const width = 300 + Math.floor(Math.random() * 200); // 300-500
+    const height = 500 + Math.floor(Math.random() * 200); // 500-700
     // Generate 5 random rectangles
-    const newLocations = Array.from({ length: 5 }, () => {
-      const width = Math.floor(40 + Math.random() * 120);
-      const height = Math.floor(40 + Math.random() * 120);
-      const left = Math.floor(Math.random() * (boardWidth - width));
-      const top = Math.floor(Math.random() * (boardHeight - height));
-      return { top, left, width, height };
+    const locations = Array.from({ length: 5 }, () => {
+      const w = Math.floor(40 + Math.random() * 120);
+      const h = Math.floor(40 + Math.random() * 120);
+      const l = Math.floor(Math.random() * (width - w));
+      const t = Math.floor(Math.random() * (height - h));
+      return { top: t, left: l, width: w, height: h };
     });
-    window.getObjectLocations = () => newLocations;
-    return Promise.resolve();
+    // The component to render (gray divs at the same locations)
+    const component = () => (
+      <div
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+        }}
+      >
+        {locations.map((obj, idx) => (
+          <div
+            key={idx}
+            style={{
+              position: 'absolute',
+              top: obj.top,
+              left: obj.left,
+              width: obj.width,
+              height: obj.height,
+              background: '#bdbdbd',
+              borderRadius: 8,
+              opacity: 0.7,
+            }}
+          />
+        ))}
+      </div>
+    );
+    return new Promise((resolve) =>
+      setTimeout(() => resolve({ component, width, height, locations }), 1000),
+    );
   };
 }
 
 export default function App() {
   const [text, setText] = useState('');
   const [hoveredIdx, setHoveredIdx] = useState(null);
-  const [objectLocations, setObjectLocations] = useState(
+  const [showAreas, setShowAreas] = useState(false);
+  const [pending, setPending] = useState(false);
+  const [boardWidth, setBoardWidth] = useState(375);
+  const [boardHeight, setBoardHeight] = useState(667);
+  const [generatedComponent, setGeneratedComponent] = useState(null);
+  const [overlayLocations, setOverlayLocations] = useState(
     typeof window !== 'undefined' && window.getObjectLocations
       ? window.getObjectLocations()
       : [],
   );
-  const [showAreas, setShowAreas] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (typeof window !== 'undefined' && window.generateFromPrompt) {
-      await window.generateFromPrompt(text);
-      setObjectLocations(window.getObjectLocations());
+      setPending(true);
+      const result = await window.generateFromPrompt(text);
+      if (
+        result &&
+        result.component &&
+        result.width &&
+        result.height &&
+        result.locations
+      ) {
+        setGeneratedComponent(() => result.component);
+        setBoardWidth(result.width);
+        setBoardHeight(result.height);
+        // Update global getObjectLocations to return the new locations
+        if (window.getObjectLocations) {
+          window.getObjectLocations = () => result.locations;
+        }
+      }
+      setOverlayLocations(
+        window.getObjectLocations ? window.getObjectLocations() : [],
+      );
+      setPending(false);
     }
     setText('');
   };
 
   const handleRefresh = () => {
     if (typeof window !== 'undefined' && window.getObjectLocations) {
-      setObjectLocations(window.getObjectLocations());
+      setOverlayLocations(window.getObjectLocations());
     }
   };
 
@@ -119,8 +171,8 @@ export default function App() {
       </div>
       <div
         style={{
-          width: 375,
-          height: 667,
+          width: boardWidth,
+          height: boardHeight,
           background: '#fff',
           borderRadius: 18,
           boxShadow: '0 4px 16px rgba(0,0,0,0.10)',
@@ -134,7 +186,9 @@ export default function App() {
           overflow: 'hidden',
         }}
       >
-        {/* Whiteboard content can go here */}
+        {/* Render the generated component (from the promise) */}
+        {generatedComponent ? React.createElement(generatedComponent) : null}
+        {/* Render overlays for hover/fill, always on top */}
         <div
           style={{
             position: 'absolute',
@@ -142,9 +196,10 @@ export default function App() {
             left: 0,
             width: '100%',
             height: '100%',
+            pointerEvents: 'none',
           }}
         >
-          {objectLocations.map((obj, idx) => (
+          {overlayLocations.map((obj, idx) => (
             <div
               key={idx}
               style={{
@@ -161,6 +216,7 @@ export default function App() {
                 borderRadius: 8,
                 boxSizing: 'border-box',
                 transition: 'border 0.15s, background 0.15s',
+                pointerEvents: 'auto',
                 cursor: 'pointer',
               }}
               onMouseEnter={() => setHoveredIdx(idx)}
@@ -205,6 +261,7 @@ export default function App() {
             minHeight: 80,
           }}
           placeholder="Type your message..."
+          disabled={pending}
         />
         <button
           type="submit"
@@ -220,8 +277,9 @@ export default function App() {
             height: 'fit-content',
             alignSelf: 'center',
           }}
+          disabled={pending}
         >
-          Submit
+          {pending ? 'Generating...' : 'Submit'}
         </button>
       </form>
     </div>
