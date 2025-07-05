@@ -1,7 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { Editor } from './App';
-import type { ObjectLocation, ObjectDataPair } from './App';
+import { Editor } from '.';
+import type { ObjectLocation, ObjectDataPair } from '.';
 import React from 'react';
 
 const _objectData: Record<string, ObjectDataPair[]> = {};

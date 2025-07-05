@@ -2,8 +2,6 @@ import { defineConfig } from 'tsup';
 
 export default defineConfig({
   entry: ['src/index.tsx'],
-  format: ['esm', 'cjs'],
+  format: ['esm'],
   dts: { resolve: true },
-  external: ['react', 'react-dom', 'react-moveable'],
-  clean: true,
 });

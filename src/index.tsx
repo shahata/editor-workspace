@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useRef, useEffect, createElement, Fragment } from 'react';
+import type { FC } from 'react';
 import Moveable from 'react-moveable';
 import { flushSync } from 'react-dom';
 
@@ -21,7 +22,7 @@ export type EditorImplementation = {
   getObjectLocations: () => ObjectLocation[];
   generateFromPrompt: (
     prompt: string,
-  ) => Promise<{ component: React.FC; width: number; height: number }>;
+  ) => Promise<{ component: FC; width: number; height: number }>;
   setObjectLocation: (index: number, newLocation: ObjectLocation) => void;
   getObjectData: (id: string) => ObjectDataPair[];
   setObjectData: (id: string, data: ObjectDataPair[]) => void;
@@ -307,7 +308,7 @@ export function Editor({ editorImpl }: { editorImpl: EditorImplementation }) {
         }}
       >
         {/* Render the generated component (from the promise) */}
-        {generatedComponent ? React.createElement(generatedComponent) : null}
+        {generatedComponent ? createElement(generatedComponent) : null}
         {/* Render overlays for hover/fill, always on top */}
         <div
           style={{
@@ -321,7 +322,7 @@ export function Editor({ editorImpl }: { editorImpl: EditorImplementation }) {
         >
           {overlayLocations.map((obj, idx) => {
             return (
-              <React.Fragment key={idx}>
+              <Fragment key={idx}>
                 <div
                   ref={(el) => {
                     overlayRefs.current[idx] = el;
@@ -357,7 +358,7 @@ export function Editor({ editorImpl }: { editorImpl: EditorImplementation }) {
                   onClick={() => setSelectedIdx(idx)}
                   title={`Object ${idx + 1}`}
                 />
-              </React.Fragment>
+              </Fragment>
             );
           })}
         </div>

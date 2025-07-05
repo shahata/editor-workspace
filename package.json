@@ -1,9 +1,8 @@
 {
   "name": "@shahata5/editor-whiteboard",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "type": "module",
-  "main": "dist/index.js",
-  "module": "dist/index.esm.js",
+  "module": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": [
     "dist",
@@ -11,16 +10,14 @@
   ],
   "peerDependencies": {
     "react": ">=18.0.0",
-    "react-dom": ">=18.0.0",
-    "react-moveable": ">=0.56.0"
+    "react-dom": ">=18.0.0"
   },
   "scripts": {
     "dev": "vite",
-    "build": "tsup",
+    "build": "tsc -b && vite build && tsup",
     "lint": "eslint .",
     "preview": "vite preview"
   },
-  "dependencies": {},
   "devDependencies": {
     "@eslint/js": "^9.29.0",
     "@types/react": "^19.1.8",
@@ -29,8 +26,13 @@
     "eslint": "^9.29.0",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
+    "globals": "^16.2.0",
     "tsup": "^8.5.0",
-    "typescript": "^5.8.3",
+    "typescript": "~5.8.3",
+    "typescript-eslint": "^8.34.1",
     "vite": "^7.0.0"
+  },
+  "dependencies": {
+    "react-moveable": "^0.56.0"
   }
 }
