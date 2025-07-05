@@ -3,13 +3,7 @@ import React, { useState } from 'react';
 // Assign the default getObjectLocations globally, outside the component
 if (typeof window !== 'undefined' && !window.getObjectLocations) {
   window.getObjectLocations = function () {
-    return [
-      { top: 50, left: 30, width: 100, height: 80 },
-      { top: 200, left: 60, width: 120, height: 90 },
-      { top: 350, left: 100, width: 80, height: 60 },
-      { top: 100, left: 200, width: 140, height: 100 },
-      { top: 400, left: 250, width: 110, height: 70 },
-    ];
+    return [];
   };
 }
 
@@ -19,15 +13,17 @@ if (typeof window !== 'undefined' && !window.generateFromPrompt) {
     // New random board size
     const width = 300 + Math.floor(Math.random() * 200); // 300-500
     const height = 500 + Math.floor(Math.random() * 200); // 500-700
-    // Generate 5 random rectangles
+    // Generate 5 random rectangles with random zIndex and rotation
     const locations = Array.from({ length: 5 }, () => {
       const w = Math.floor(40 + Math.random() * 120);
       const h = Math.floor(40 + Math.random() * 120);
       const l = Math.floor(Math.random() * (width - w));
       const t = Math.floor(Math.random() * (height - h));
-      return { top: t, left: l, width: w, height: h };
+      const zIndex = Math.floor(Math.random() * 10) + 1; // 1-10
+      const rotation = Math.floor(Math.random() * 360); // 0-359 degrees
+      return { top: t, left: l, width: w, height: h, zIndex, rotation };
     });
-    // The component to render (gray divs at the same locations)
+    // The component to render (placeholder look: diagonal lines pattern)
     const component = () => (
       <div
         style={{
@@ -47,9 +43,11 @@ if (typeof window !== 'undefined' && !window.generateFromPrompt) {
               left: obj.left,
               width: obj.width,
               height: obj.height,
-              background: '#bdbdbd',
+              background: `repeating-linear-gradient(135deg, #e0e0e0 0 8px, #bdbdbd 8px 16px)`,
               borderRadius: 8,
               opacity: 0.7,
+              zIndex: obj.zIndex,
+              transform: `rotate(${obj.rotation}deg)`,
             }}
           />
         ))}
@@ -208,7 +206,9 @@ export default function App() {
                 left: obj.left,
                 width: obj.width,
                 height: obj.height,
-                background: showAreas ? '#e3e3e3' : 'transparent',
+                background: showAreas
+                  ? 'rgba(227, 227, 227, 0.6)'
+                  : 'transparent',
                 border:
                   hoveredIdx === idx
                     ? '2px solid #4fc3f7'
@@ -218,6 +218,8 @@ export default function App() {
                 transition: 'border 0.15s, background 0.15s',
                 pointerEvents: 'auto',
                 cursor: 'pointer',
+                zIndex: obj.zIndex,
+                transform: `rotate(${obj.rotation}deg)`,
               }}
               onMouseEnter={() => setHoveredIdx(idx)}
               onMouseLeave={() => setHoveredIdx(null)}
