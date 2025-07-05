@@ -78,6 +78,10 @@ export default function App() {
   const [selectedIdx, setSelectedIdx] = useState(null);
   const [generatedComponentKey, setGeneratedComponentKey] = useState(0);
   const overlayRefs = useRef([]);
+  const whiteboardRef = useRef(null);
+  const minBoardWidth = 200;
+  const minBoardHeight = 200;
+  const isResizing = useRef(null); // { type: 'width' | 'height', startX, startY, startWidth, startHeight }
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -158,6 +162,46 @@ export default function App() {
   const selectedObj =
     selectedIdx !== null ? overlayLocations[selectedIdx] : null;
 
+  function handleBoardResizeMouseDown(e, type) {
+    e.preventDefault();
+    if (type === 'width') {
+      isResizing.current = {
+        type,
+        startX: e.clientX,
+        startWidth: boardWidth,
+      };
+    } else if (type === 'height') {
+      isResizing.current = {
+        type,
+        startY: e.clientY,
+        startHeight: boardHeight,
+      };
+    }
+    window.addEventListener('mousemove', handleBoardResizeMouseMove);
+    window.addEventListener('mouseup', handleBoardResizeMouseUp);
+  }
+
+  function handleBoardResizeMouseMove(e) {
+    if (!isResizing.current) return;
+    if (isResizing.current.type === 'width') {
+      const dx = e.clientX - isResizing.current.startX;
+      setBoardWidth(
+        Math.max(minBoardWidth, isResizing.current.startWidth + dx),
+      );
+    } else if (isResizing.current.type === 'height') {
+      const dy = e.clientY - isResizing.current.startY;
+      setBoardHeight(
+        Math.max(minBoardHeight, isResizing.current.startHeight + dy),
+      );
+    }
+  }
+
+  function handleBoardResizeMouseUp() {
+    isResizing.current = null;
+    window.removeEventListener('mousemove', handleBoardResizeMouseMove);
+    window.removeEventListener('mouseup', handleBoardResizeMouseUp);
+  }
+
   return (
     <div
       style={{
@@ -219,6 +263,7 @@ export default function App() {
         </button>
       </div>
       <div
+        ref={whiteboardRef}
         style={{
           width: boardWidth,
           height: boardHeight,
@@ -291,6 +336,68 @@ export default function App() {
               </React.Fragment>
             );
           })}
+        </div>
+        {/* Right (width) resize handle */}
+        <div
+          style={{
+            position: 'absolute',
+            top: '50%',
+            right: '-24px', // 10px gap + 18px bar width/2
+            width: 28,
+            height: 70,
+            transform: 'translateY(-50%)',
+            background: 'none',
+            cursor: 'ew-resize',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 100001,
+            userSelect: 'none',
+            outline: '1.5px solid #bbb',
+            borderRadius: 8,
+          }}
+          onMouseDown={(e) => handleBoardResizeMouseDown(e, 'width')}
+          title="Resize width"
+        >
+          <div
+            style={{
+              width: 18,
+              height: 60,
+              background: '#333',
+              borderRadius: 6,
+            }}
+          />
+        </div>
+        {/* Bottom (height) resize handle */}
+        <div
+          style={{
+            position: 'absolute',
+            left: '50%',
+            bottom: '-24px', // 10px gap + 18px bar height/2
+            width: 70,
+            height: 28,
+            transform: 'translateX(-50%)',
+            background: 'none',
+            cursor: 'ns-resize',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 100001,
+            userSelect: 'none',
+            outline: '1.5px solid #bbb',
+            borderRadius: 8,
+          }}
+          onMouseDown={(e) => handleBoardResizeMouseDown(e, 'height')}
+          title="Resize height"
+        >
+          <div
+            style={{
+              height: 18,
+              width: 60,
+              background: '#333',
+              borderRadius: 6,
+            }}
+          />
         </div>
       </div>
       {selectedRef && selectedObj && (
