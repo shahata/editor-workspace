@@ -26,6 +26,7 @@ export type EditorImplementation = {
   setObjectLocation: (id: string, newLocation: ObjectLocation) => void;
   getObjectData: (id: string) => ObjectDataPair[];
   setObjectData: (id: string, data: ObjectDataPair[]) => void;
+  onLocationsChanged?: (callback: () => void) => () => void;
 };
 
 export function Editor({ editorImpl }: { editorImpl: EditorImplementation }) {
@@ -89,15 +90,6 @@ export function Editor({ editorImpl }: { editorImpl: EditorImplementation }) {
   }, []);
 
   useEffect(() => {
-    setOverlayLocations((prev: ObjectLocation[]) =>
-      prev.map((obj: ObjectLocation, i: number) => {
-        if (!obj.id) obj.id = `obj-${i}`;
-        return obj;
-      }),
-    );
-  }, []);
-
-  useEffect(() => {
     if (
       selectedIdx !== null &&
       overlayLocations[selectedIdx] &&
@@ -111,7 +103,7 @@ export function Editor({ editorImpl }: { editorImpl: EditorImplementation }) {
       setSidepanelId(null);
       setSidepanelData(null);
     }
-  }, [selectedIdx, overlayLocations]);
+  }, [selectedIdx, overlayLocations, editorImpl]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -228,6 +220,16 @@ export function Editor({ editorImpl }: { editorImpl: EditorImplementation }) {
       }
     }, 0);
   }, [sidepanelData, boardWidth, boardHeight]);
+
+  // Subscribe to external location changes
+  useEffect(() => {
+    if (typeof editorImpl.onLocationsChanged === 'function') {
+      const unsubscribe = editorImpl.onLocationsChanged(() => {
+        setOverlayLocations(editorImpl.getObjectLocations());
+      });
+      return unsubscribe;
+    }
+  }, [editorImpl]);
 
   return (
     <div
