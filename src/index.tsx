@@ -224,9 +224,13 @@ export function Editor({ editorImpl }: { editorImpl: EditorImplementation }) {
   // Subscribe to external location changes
   useEffect(() => {
     if (typeof editorImpl.onLocationsChanged === 'function') {
-      const unsubscribe = editorImpl.onLocationsChanged(() => {
-        setOverlayLocations(editorImpl.getObjectLocations());
-      });
+      const unsubscribe = editorImpl.onLocationsChanged(
+        (width?: number, height?: number) => {
+          setOverlayLocations(editorImpl.getObjectLocations());
+          if (width) setBoardWidth(width);
+          if (height) setBoardHeight(height);
+        },
+      );
       return unsubscribe;
     }
   }, [editorImpl]);
