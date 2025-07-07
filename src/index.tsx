@@ -33,6 +33,7 @@ export function Editor({ editorImpl }: { editorImpl: EditorImplementation }) {
   const [text, setText] = useState<string>('');
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
   const [showAreas, setShowAreas] = useState<boolean>(false);
+  const [showOverlays, setShowOverlays] = useState<boolean>(true);
   const [pending, setPending] = useState<boolean>(false);
   const [boardWidth, setBoardWidth] = useState<number>(375);
   const [boardHeight, setBoardHeight] = useState<number>(667);
@@ -274,6 +275,23 @@ export function Editor({ editorImpl }: { editorImpl: EditorImplementation }) {
           {showAreas ? 'Hide Areas' : 'Show Areas'}
         </button>
         <button
+          onClick={() => setShowOverlays((v) => !v)}
+          style={{
+            padding: '10px 18px',
+            borderRadius: 8,
+            border: '1px solid #1976d2',
+            background: showOverlays ? '#1976d2' : '#fff',
+            color: showOverlays ? '#fff' : '#1976d2',
+            fontWeight: 'bold',
+            fontSize: 16,
+            cursor: 'pointer',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+            transition: 'background 0.2s, color 0.2s',
+          }}
+        >
+          {showOverlays ? 'Edit' : 'Preview'}
+        </button>
+        <button
           onClick={handleRefresh}
           style={{
             padding: '10px 18px',
@@ -322,7 +340,7 @@ export function Editor({ editorImpl }: { editorImpl: EditorImplementation }) {
             pointerEvents: 'none',
           }}
         >
-          {overlayLocations.map((obj, idx) => {
+          {showOverlays && overlayLocations.map((obj, idx) => {
             return (
               <Fragment key={idx}>
                 <div
